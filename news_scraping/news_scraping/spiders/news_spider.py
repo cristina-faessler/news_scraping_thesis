@@ -6,11 +6,12 @@ from ..items import NewsScrapingItem
 class NewsSpider(scrapy.Spider):
 
     name = 'news'
-    start_urls = ['https://www.tagesschau.de/']
+    start_urls = ['https://www.tagesschau.de/',]
 
     #parse function
     def parse(self, response):
-        for href in response.css("div.teaser > a::attr('href')"):
+        anchor_selector = "div.teaser > a::attr('href')"
+        for href in response.css(anchor_selector):
             url = response.urljoin(href.extract())
             yield scrapy.Request(url, callback=self.parse_news_article)
 
