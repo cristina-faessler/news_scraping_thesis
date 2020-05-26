@@ -16,14 +16,11 @@ class NewsSpider(scrapy.Spider):
             yield scrapy.Request(url, callback=self.parse_news_article)
 
     def parse_news_article(self, response):
-            items = NewsScrapingItem()
 
             headline = response.css('.headline::text').extract()
-            date_publish = response.css('.stand').get()
+            date_publish = response.css('span.stand::text').extract()
             article_text = response.css('p.text.small::text').extract()
 
-            items['headline'] = headline
-            items['date_publish'] = date_publish
-            items['article_text'] = article_text
+            articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text)
 
-            yield items
+            yield articleItem
