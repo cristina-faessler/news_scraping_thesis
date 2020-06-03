@@ -19,10 +19,11 @@ class NewsScrapingPipeline(object):
         return item
 
     def store_to_db(self, item):
-        self.cur.execute("""INSERT INTO news (headline, date_publish, article_text) VALUES (%s, %s, %s)""",(
+        self.cur.execute("""INSERT INTO news (headline, date_publish, article_text, link) VALUES (%s, %s, %s, %s)""",(
             item['headline'],
             item['date_publish'],
             item['article_text'],
+            item['link']
         ))
         self.conn.commit()
 

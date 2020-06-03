@@ -12,4 +12,4 @@ class NewsScrapingItem(scrapy.Item):
     headline = scrapy.Field()
     date_publish = scrapy.Field()
     article_text = scrapy.Field()
-
+    link = scrapy.Field()
