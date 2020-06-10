@@ -1,4 +1,0 @@
-url = ["https://www.tagesschau.de/inland/", "https://www.deutschlandfunk.de/die-nachrichten.1441.de.html",
-"https://www.dw.com/de/themen/s-9077", "https://www.br.de/nachrichten/", "https://www.rbb24.de/",
-"https://www.ndr.de/nachrichten/info/index.html", "https://www.mdr.de/nachrichten/index.html",
-"https://www.swr.de/swraktuell/swraktuell-100.html"]

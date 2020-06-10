@@ -1,0 +1,44 @@
+{
+    "var_tags": [
+        {
+            "headline": "h1::text",
+            "date_publish": "time::text",
+            "article_text": "p::text"
+        },
+        {
+            "headline":".headline::text",
+            "date_publish":"span.stand::text",
+            "article_text":"p.text.small::text"
+        },
+        {
+            "headline": "h1::text",
+            "date_publish": "ul.smallList li::text",
+            "article_text": "div.longText p::text"
+        },
+        {
+            "headline": "h3::text",
+            "date_publish": "time::text",
+            "article_text": "p::text"
+        },
+        {
+            "headline": "h3::text",
+            "date_publish": "time::text",
+            "article_text": ".textblock p::text"
+        },
+        {
+            "headline": "h1::text",
+            "date_publish": ".lastchanged::text",
+            "article_text": "p::text"
+        },
+        {
+            "headline": "h1::text",
+            "date_publish": "p.webtime::text",
+            "article_text": "p::text"
+        },
+        {
+            "headline": "span.headline::text",
+            "date_publish": "time span .date::text",
+            "article_text": "p::text"
+        }
+    ]
+}

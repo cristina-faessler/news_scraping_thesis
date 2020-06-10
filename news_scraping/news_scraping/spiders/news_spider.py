@@ -1,17 +1,19 @@
 #extracted Data - Temporary containers (items) - storing in database
 import scrapy
+import os
 from ..items import NewsScrapingItem
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import Rule
 from bs4 import BeautifulSoup
+import json
+from scrapy.crawler import CrawlerProcess
 
-class TagesschauSpider(scrapy.Spider):
+class NewsSpider(scrapy.Spider):
 
     name = 'news'
-    start_urls = ['https://www.tagesschau.de/']
-    # with open("../websites_url.txt", "r") as file:
-    #      start_urls = [url.strip() for url in file.readlines()]
-    #This spider has one rule: extract all (unique and canonicalized) links, follow them and parse them using the parse_items method
+
+    """This spider has one rule: extract all (unique and canonicalized) links,
+     follow them and parse them using the parse_items method"""
     rules = [
         Rule(
             LinkExtractor(
@@ -19,39 +21,64 @@ class TagesschauSpider(scrapy.Spider):
                 unique=True
             ),
             follow=True,
-            callback='parse_news_article'
+            callback='parse'
         )
     ]
 
-    def start_requests(self):
-        """Method which starts the requests by visiting all URLs specified in start_urls"""
-        for url in self.start_urls:
-            yield scrapy.Request(url, callback=self.parse, dont_filter=True)
+    def __init__(self, *args, **kwargs):
+        script_dir = os.path.dirname(__file__)
+        abs_file_path = os.path.join(script_dir, "website_urls.txt")
+        with open(abs_file_path) as f:
+            self.start_urls = [url.strip() for url in f.readlines()]
 
-    #parse function
-    def parse(self, response):
-        # Only extract canonicalized and unique links (with respect to the current page)
-        links = LinkExtractor(canonicalize=True, unique=True).extract_links(response)
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(url, callback=self.find_urls)
+
+    def open_var_tags(self):
+        script_dir = os.path.dirname(__file__)
+        with open(os.path.join(script_dir,'variable_tags.json'), 'r') as myfile:
+            data = myfile.read()
+        obj = json.loads(data)
+        return obj
+
+    def get_params(self, var_tags, tag):
+        headline = var_tags['var_tags'][tag]['headline']
+        date_publish = var_tags['var_tags'][tag]['date_publish']
+        article_text = var_tags['var_tags'][tag]['article_text']
+
+        return headline, date_publish, article_text
+
+    def find_urls(self, response):
+        """Only extract canonicalized and unique links (with respect to the current page)"""
+        # links = LinkExtractor(canonicalize=True, unique=True).extract_links(response)
         soup = BeautifulSoup(response.body, 'html.parser')
         # for link in links:
         #     print(link.url)
         for a in soup.find_all('a'):
             if a.get('href') is not None:
                 url = response.urljoin(a.get('href'))
-                yield scrapy.Request(url, callback=self.parse_news_article)
+                yield scrapy.Request(url, callback=self.parse)
 
-        # anchor_selector = "div.teaser > a::attr('href')"
-        # for href in response.css(anchor_selector):
-        #     url = response.urljoin(href.extract())
-        #     yield scrapy.Request(url, callback=self.parse_news_article)
 
-    def parse_news_article(self, response):
+    #parse function
+    def parse(self, response):
+        var_tags = NewsSpider.open_var_tags(self)
+        for tag in range(len(var_tags['var_tags'])):
+            headline, date_publish, article_text = NewsSpider.get_params(self, var_tags, tag)
 
-            headline = response.css('.headline::text').extract()
-            date_publish = response.css('span.stand::text').extract()
-            article_text = response.css('p.text.small::text').extract()
+            headline = response.css(headline).extract()
+            date_publish = response.css(date_publish).extract()
+            article_text = response.css(article_text).extract()
             link = response.url
 
             articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, link=link)
-
             return articleItem
+
+# run Scrapy
+process = CrawlerProcess()
+process.crawl(NewsSpider)
+process.start()
+
+
+
