@@ -1,0 +1,19 @@
+{
+  "url_params": [
+    {
+      "tag": "div",
+      "keyword": "html",
+      "exclude": "multimedia,index,Index,blog,podcast,archiv,jahresrueckblick,wahl,suche2"
+    },
+    {
+      "tag": "article",
+      "keyword": "deutschlandfunk",
+      "exclude": "deutschlandradio"
+    },
+    {
+      "tag":"article",
+      "keyword": "nachrichten",
+      "exclude": "autoren,mediathek"
+    }
+  ]
+}

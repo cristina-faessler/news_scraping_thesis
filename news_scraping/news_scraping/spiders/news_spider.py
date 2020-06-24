@@ -1,33 +1,19 @@
-#extracted Data - Temporary containers (items) - storing in database
 import scrapy
 import os
 from ..items import NewsScrapingItem
-from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import Rule
 from bs4 import BeautifulSoup
 import json
+import unidecode as ud
+import requests
 from scrapy.crawler import CrawlerProcess
 
 class NewsSpider(scrapy.Spider):
 
     name = 'news'
 
-    """This spider has one rule: extract all (unique and canonicalized) links,
-     follow them and parse them using the parse_items method"""
-    rules = [
-        Rule(
-            LinkExtractor(
-                canonicalize=True,
-                unique=True
-            ),
-            follow=True,
-            callback='parse'
-        )
-    ]
-
     def __init__(self, *args, **kwargs):
         script_dir = os.path.dirname(__file__)
-        abs_file_path = os.path.join(script_dir, "website_urls.txt")
+        abs_file_path = os.path.join(script_dir, "base_urls.txt")
         with open(abs_file_path) as f:
             self.start_urls = [url.strip() for url in f.readlines()]
 
@@ -35,50 +21,111 @@ class NewsSpider(scrapy.Spider):
         for url in self.start_urls:
             yield scrapy.Request(url, callback=self.find_urls)
 
-    def open_var_tags(self):
+    def open_article_params(self):
         script_dir = os.path.dirname(__file__)
-        with open(os.path.join(script_dir,'variable_tags.json'), 'r') as myfile:
+        with open(os.path.join(script_dir,'parse.json'), 'r') as myfile:
             data = myfile.read()
         obj = json.loads(data)
         return obj
 
-    def get_params(self, var_tags, tag):
-        headline = var_tags['var_tags'][tag]['headline']
-        date_publish = var_tags['var_tags'][tag]['date_publish']
-        article_text = var_tags['var_tags'][tag]['article_text']
+    def open_url_params(self):
+        script_dir = os.path.dirname(__file__)
+        with open(os.path.join(script_dir,'find_urls.json'), 'r') as myfile:
+            data = myfile.read()
+        obj = json.loads(data)
+        return obj
+
+    def get_article_params(self, params, value):
+
+        headline = params['article_params'][value]['headline']
+        date_publish = params['article_params'][value]['date_publish']
+        article_text = params['article_params'][value]['article_text']
 
         return headline, date_publish, article_text
 
+    def get_url_params(self, params, value):
+
+        tag = params['url_params'][value]['tag']
+        keyword = params['url_params'][value]['keyword']
+        exclude = params['url_params'][value]['exclude']
+
+        return tag, keyword, exclude
+
+    def clean_link(self, link, keyword, exclude):
+        if keyword is not None:
+            keyword = keyword.split(',')
+            if any(key_word in link for key_word in keyword) == False:
+                return False
+
+            if exclude is not None:
+                exclude = exclude.split(',')
+                if any(key_word in link for key_word in exclude) == True:
+                    return False
+
+            return True
+
     def find_urls(self, response):
-        """Only extract canonicalized and unique links (with respect to the current page)"""
-        # links = LinkExtractor(canonicalize=True, unique=True).extract_links(response)
-        soup = BeautifulSoup(response.body, 'html.parser')
-        # for link in links:
-        #     print(link.url)
-        for a in soup.find_all('a'):
-            if a.get('href') is not None:
-                url = response.urljoin(a.get('href'))
+
+        urls = []
+
+        url_params = NewsSpider.open_url_params(self)
+        for param in range(len(url_params['url_params'])):
+            tag, keyword, exclude = NewsSpider.get_url_params(self, url_params, param)
+
+            soup = BeautifulSoup(response.body, 'html.parser')
+            article_tag = soup.find_all(tag)
+            for tag in article_tag:
+                for a in tag.find_all('a'):
+                    try:
+                        link = a.get('href')
+
+                        if not self.clean_link(link, keyword, exclude):
+                            continue
+
+                        link = ud.unidecode(link)
+                        if "http" in link:
+                            urls.append(link)
+                        else:
+                            urls.append(response.urljoin(link))
+                    except TypeError:
+                        print('Error retrieving anchor tags')
+            urls = list(set(urls))
+            for url in urls:
                 yield scrapy.Request(url, callback=self.parse)
 
+    def clean_news_article(self, headline, date_publish, article_text):
+        """Removes \n from text"""
+        headline = list(map(lambda x: x.strip(), headline))
+        date_publish = list(map(lambda x: x.strip(), date_publish))
+        article_text = list(map(lambda x: x.strip(), article_text))
 
-    #parse function
+        return headline, date_publish, article_text
+
     def parse(self, response):
-        var_tags = NewsSpider.open_var_tags(self)
-        for tag in range(len(var_tags['var_tags'])):
-            headline, date_publish, article_text = NewsSpider.get_params(self, var_tags, tag)
+
+        article_params = NewsSpider.open_article_params(self)
+        for param in range(len(article_params['article_params'])):
+            headline, date_publish, article_text = NewsSpider.get_article_params(self, article_params, param)
 
             headline = response.css(headline).extract()
             date_publish = response.css(date_publish).extract()
             article_text = response.css(article_text).extract()
             link = response.url
 
-            articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, link=link)
-            return articleItem
+            NewsSpider.clean_news_article(self, headline, article_text, date_publish)
 
-# run Scrapy
-process = CrawlerProcess()
-process.crawl(NewsSpider)
-process.start()
+            articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
+                                           link=link)
+
+            yield articleItem
+
+
+
+
+# run Scrapy from Script
+# process = CrawlerProcess()
+# process.crawl(NewsSpider)
+# process.start()
 
 
 

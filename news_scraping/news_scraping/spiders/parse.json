@@ -1,0 +1,19 @@
+{
+  "article_params":[
+    {
+      "headline":".headline::text",
+      "date_publish":".stand::text",
+      "article_text":"p::text"
+    },
+    {
+      "headline": "h1::text",
+      "date_publish": "time::text",
+      "article_text": "p::text"
+    },
+    {
+      "headline": "h3::text",
+      "date_publish": "time::text",
+      "article_text": "p::text"
+    }
+  ]
+}
