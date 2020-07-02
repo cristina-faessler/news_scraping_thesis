@@ -1,7 +1,11 @@
 import psycopg2
-from psycopg2 import sql
+from itemadapter import ItemAdapter
+from scrapy.exceptions import DropItem
 
 class NewsScrapingPipeline(object):
+
+    def __init__(self):
+        self.ids_seen = set()
 
     def open_spider(self, spider):
         host = 'localhost'
@@ -17,68 +21,47 @@ class NewsScrapingPipeline(object):
         self.conn.close()
 
     def process_item(self, item, spider):
+        # adapter = ItemAdapter(item)
+        # if adapter['link'] in self.ids_seen:
+        #     raise DropItem("Duplicate item found: %r" % item)
+        # else:
+        #     self.ids_seen.add(adapter['link'])
         self.store_to_db(item)
-        # self.remove_duplicates(item)
         return item
 
     def create_table(self):
-        self.cur.execute("""DROP TABLE IF EXISTS news""")
-        self.cur.execute("""CREATE TABLE news (
+        drop = """DROP TABLE IF EXISTS news"""
+        create_tbl = """CREATE TABLE news (
         article_id serial PRIMARY KEY,
         headline TEXT,
         date_publish TEXT,
         article_text TEXT,
         link TEXT
         )
-        """)
-
-    def remove_duplicates(self, item):
-        pass
-        # delete_query = sql.SQL("delete from {} T1 using {} T2 where T1.ctid < T2.ctid and T1.{} = T2.{};").format(
-        #     sql.Identifier("news"),
-        #     sql.Identifier("news"),
-        #     sql.Placeholder(),
-        #     sql.Placeholder()
-        # )
-        # print(delete_query.as_string(self.conn))
-        # self.cur.execute(delete_query, ['link'], ['link'])
-        # self.conn.commit()
-        # select_query = sql.SQL("SELECT DISTINCT {} from {}").format(
-        #     sql.Identifier(item['link']),
-        #     sql.Identifier("news")
-        # )
-        # print(select_query.as_string(self.conn))
-        # self.cur.execute(select_query)
-        #
-        # row_count = self.cur.rowcount
-        # print(row_count, "Record Deleted")
-
+        """
+        self.cur.execute(drop)
+        self.cur.execute(create_tbl)
+        
+    def remove_duplicate(self, item):
+        delete_query = """DELETE FROM news T1 using news T2 where t1.ctid < t2.ctid and t1.%s = t2.%s;
+                """
+        self.cur.execute(delete_query, (item['link'], item['link']))
+        self.conn.commit()
 
     def store_to_db(self, item):
-        # field_lst = [fld_name for fld_name in item.keys()]
-        # insert_query = sql.SQL("INSERT INTO news ({}) VALUES ({})").format(
-        #     sql.SQL(',').join(map(sql.Identifier, field_lst)),
-        #     sql.SQL(',').join(map(sql.Placeholder, field_lst))
-        # )
-        # print(insert_query.as_string(self.conn))
-        # self.cur.execute(insert_query)
-        # self.conn.commit()
 
-        # query = """INSERT INTO news (headline, date_publish, article_text, link)
-        # SELECT '{}', '{}, '{}', '{}'
-        # WHERE NOT EXISTS (SELECT link from news WHERE link = link);
-        # """.format(item['headline'], item['date_publish'], item['article_text'], item['link'])
-        # self.cur.execute(query)
-        # self.conn.commit()
-
-        insert_query = """INSERT INTO news (headline, date_publish, article_text, link)
-        VALUES (%s, %s, %s, %s)"""
-
+        insert_query = """INSERT INTO news
+        (headline, date_publish, article_text, link)
+        VALUES (%s, %s, %s, %s)
+        """
         self.cur.execute(insert_query, (
             ('').join(item['headline']),
             ('').join(item['date_publish']),
             ('').join(item['article_text']),
-            ('').join(item['link'])
+            item['link']
         ))
         self.conn.commit()
+
+
+
 
