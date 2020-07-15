@@ -1,11 +1,6 @@
 import psycopg2
-from itemadapter import ItemAdapter
-from scrapy.exceptions import DropItem
 
 class NewsScrapingPipeline(object):
-
-    def __init__(self):
-        self.ids_seen = set()
 
     def open_spider(self, spider):
         host = 'localhost'
@@ -21,11 +16,6 @@ class NewsScrapingPipeline(object):
         self.conn.close()
 
     def process_item(self, item, spider):
-        # adapter = ItemAdapter(item)
-        # if adapter['link'] in self.ids_seen:
-        #     raise DropItem("Duplicate item found: %r" % item)
-        # else:
-        #     self.ids_seen.add(adapter['link'])
         self.store_to_db(item)
         return item
 
@@ -41,12 +31,6 @@ class NewsScrapingPipeline(object):
         """
         self.cur.execute(drop)
         self.cur.execute(create_tbl)
-        
-    def remove_duplicate(self, item):
-        delete_query = """DELETE FROM news T1 using news T2 where t1.ctid < t2.ctid and t1.%s = t2.%s;
-                """
-        self.cur.execute(delete_query, (item['link'], item['link']))
-        self.conn.commit()
 
     def store_to_db(self, item):
 
