@@ -1,45 +1,54 @@
 import scrapy
 from ..items import NewsScrapingItem
+from scrapy.crawler import CrawlerProcess
 
 class DFSpider(scrapy.Spider):
 
     name = 'df_spider'
     start_urls = ['https://www.deutschlandfunk.de/die-nachrichten.1441.de.html']
+    allowed_domains = ['deutschlandfunk.de']
 
     def parse(self, response):
+        nav_menu = response.css(".dlfn-main__nav > li > a::attr('href')")
+        items = nav_menu.extract()
+        count = 0
+        for page in items:
+            next_page = response.urljoin(page)
+            articleItem = NewsScrapingItem()
+            subject_sel = response.css(".dlfn-main__nav > li > a::text").extract()
+            articleItem['subject'] = subject_sel[count]
+            count += 1
 
-        anchor_selector = "article a::attr('href')"
-        sel = "div.articlemain p a::attr('href')"
+            request = scrapy.Request(next_page, callback=self.get_all_links)
+            request.meta['item'] = articleItem  # By calling .meta, we can pass our item object into the callback.
+            yield request
 
-        for href in response.css(sel):
+    def get_all_links(self, response):
+        articleItem = response.meta['item']
+        selector = "article a::attr('href')"
+        for href in response.css(selector):
             url = response.urljoin(href.extract())
-            yield scrapy.Request(url, callback=self.parse_article)
+            request = scrapy.Request(url, callback=self.scrape)
+            request.meta['item'] = articleItem
+            yield request
 
-        for href in response.css(anchor_selector):
-            url = response.urljoin(href.extract())
-            yield scrapy.Request(url, callback=self.parse_news_article)
+    def scrape(self, response):
+        articleItem = response.meta['item']
+        articleItem['headline'] = response.css('h1::text').extract()
+        articleItem['date_publish'] = response.css('time::text').extract()
+        articleItem['article_text'] = response.css('.articlemain > p::text').extract()
+        articleItem['link'] = response.url
 
-    def parse_article(self, response):
-        headline = response.css('h1::text').extract()
-        date_publish = response.css('span.current::text').extract()
-        article_text = response.css('.text p::text').extract()
-        link = response.url
-
-        while '\n' in headline: headline.remove('\n')
-
-        articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, link=link)
+        while '\n' in articleItem['headline']: articleItem['headline'].remove('\n')
 
         yield articleItem
 
-    def parse_news_article(self, response):
 
-        headline = response.css('h1::text').extract()
-        date_publish = response.css('time::text').extract()
-        article_text = response.css('div.articlemain > p::text').extract()
-        link = response.url
+if __name__ == "__main__":
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+    })
+    process.crawl(DFSpider)
+    process.start()
 
-        while '\n' in headline: headline.remove('\n')
 
-        articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, link=link)
-
-        yield articleItem
