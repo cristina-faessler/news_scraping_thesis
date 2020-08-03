@@ -1,6 +1,8 @@
 import scrapy
 from ..items import NewsScrapingItem
 import re
+import yake
+from gensim.summarization.summarizer import summarize
 
 class RbbSpider(scrapy.Spider):
 
@@ -31,7 +33,15 @@ class RbbSpider(scrapy.Spider):
         headline = response.css('header > h1::text').extract()
         date_publish = response.css('.lastchanged::text').extract()
         article_text = response.css('p::text').extract()
-        subject = response.url.split('/')[3]
+        article_text = ''.join(article_text)
+        if 'nachrichten' in response.url:
+            subject = response.url.split('/')[4]
+        else:
+            subject = response.url.split('/')[3]
+        author = ''
+        kw_extractor = yake.KeywordExtractor(lan='de', top=10)
+        keywords = kw_extractor.extract_keywords(article_text)
+        summary = summarize(article_text)
         link = response.url
 
         headline = list(map(lambda x: x.strip(), headline))
@@ -42,5 +52,6 @@ class RbbSpider(scrapy.Spider):
             result = re.search(pattern, i)
             date_publish = result.group()
 
-        articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, subject=subject, link=link)
+        articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
+                                       author=author, keywords=keywords, summary=summary, subject=subject, link=link)
         yield articleItem

@@ -1,6 +1,8 @@
 import scrapy
 from ..items import NewsScrapingItem
 from scrapy.crawler import CrawlerProcess
+import yake
+from gensim.summarization.summarizer import summarize
 
 class DFSpider(scrapy.Spider):
 
@@ -37,6 +39,11 @@ class DFSpider(scrapy.Spider):
         articleItem['headline'] = response.css('h1::text').extract()
         articleItem['date_publish'] = response.css('time::text').extract()
         articleItem['article_text'] = response.css('.articlemain > p::text').extract()
+        article_text = ''.join(articleItem['article_text'])
+        kw_extractor = yake.KeywordExtractor(lan='de', top=10)
+        articleItem['keywords'] = kw_extractor.extract_keywords(article_text)
+        articleItem['summary'] = summarize(article_text)
+        articleItem['author'] = ''
         articleItem['link'] = response.url
 
         while '\n' in articleItem['headline']: articleItem['headline'].remove('\n')

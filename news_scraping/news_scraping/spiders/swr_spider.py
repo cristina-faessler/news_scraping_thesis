@@ -1,6 +1,7 @@
 import scrapy
 from ..items import NewsScrapingItem
-
+import yake
+from gensim.summarization.summarizer import summarize
 class RbbSpider(scrapy.Spider):
 
     name = 'swr_spider'
@@ -27,15 +28,19 @@ class RbbSpider(scrapy.Spider):
         if "swraktuell" in response.url:
             headline = response.css("div > header > h1 > span[itemprop='headline']::text").extract()
             date_publish = response.css('time > .date::text').extract()
-            article_text = response.css('.bodytext p::text').extract()
-            subject = response.url.split('/')[4]
-            link = response.url
-
             if date_publish is not None:
                 date_publish = date_publish[0]
+            article_text = response.css('.bodytext p::text').extract()
+            article_text = ''.join(article_text)
+            subject = response.url.split('/')[4]
+            author = response.css('footer > div > dl.meta-authors > dd::text').extract()
+            author = list(map(lambda x: x.strip(), author))
+            kw_extractor = yake.KeywordExtractor(lan='de', top=10)
+            keywords = kw_extractor.extract_keywords(article_text)
+            summary = summarize(article_text)
+            link = response.url
 
-            article_text = list(map(lambda x: x.strip(), article_text))
-
-            articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, subject=subject, link=link)
+            articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
+                                           subject=subject, author=author, keywords=keywords, summary=summary, link=link)
 
             yield articleItem

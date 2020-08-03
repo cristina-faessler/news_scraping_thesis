@@ -26,6 +26,9 @@ class NewsScrapingPipeline(object):
         headline TEXT,
         date_publish TEXT,
         article_text TEXT,
+        authors TEXT,
+        keywords TEXT,
+        summary TEXT,
         subject TEXT,
         link TEXT
         )
@@ -36,13 +39,16 @@ class NewsScrapingPipeline(object):
     def store_to_db(self, item):
 
         insert_query = """INSERT INTO news
-        (headline, date_publish, article_text, subject, link)
-        VALUES (%s, %s, %s, %s, %s)
+        (headline, date_publish, article_text, authors, keywords, summary, subject, link)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
         self.cur.execute(insert_query, (
             ('').join(item['headline']),
             ('').join(item['date_publish']),
             ('').join(item['article_text']),
+            ('').join(item['author']),
+            item['keywords'],
+            item['summary'],
             item['subject'],
             item['link']
         ))

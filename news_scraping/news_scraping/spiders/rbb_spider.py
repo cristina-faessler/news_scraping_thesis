@@ -1,6 +1,7 @@
 import scrapy
 from ..items import NewsScrapingItem
-import re
+import yake
+from gensim.summarization.summarizer import summarize
 
 class RbbSpider(scrapy.Spider):
 
@@ -29,12 +30,18 @@ class RbbSpider(scrapy.Spider):
             date_publish = response.css('time::text').extract()
             date_publish = date_publish[0]
             article_text = response.css('.textblock p::text').extract()
+            article_text = ''.join(article_text)
+            kw_extractor = yake.KeywordExtractor(lan='de', top=10)
+            keywords = kw_extractor.extract_keywords(article_text)
+            author = ''
             subject = response.url.split('/')[3]
+            summary = summarize(article_text)
             link = response.url
 
             headline = list(map(lambda x: x.strip(), headline))
 
             articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
-                                           subject=subject, link=link)
+                                           author=author, subject=subject, keywords=keywords, summary=summary, link=link)
+
 
             yield articleItem

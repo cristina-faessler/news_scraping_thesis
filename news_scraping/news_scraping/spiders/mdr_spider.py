@@ -1,5 +1,7 @@
 import scrapy
 from ..items import NewsScrapingItem
+from summarizer import Summarizer
+from transformers import BertModel, BertTokenizer
 
 class RbbSpider(scrapy.Spider):
 
@@ -34,13 +36,24 @@ class RbbSpider(scrapy.Spider):
     def scrape(self, response):
         headline = response.css('h1 > span.headline::text').extract()
         date_publish = response.css('p.webtime > span::text').extract()
-        date_publish = date_publish[1].replace(',','')
+        if date_publish is not None:
+            date_publish = date_publish[1].replace(',','')
         article_text = response.css('.paragraph > .text::text').extract()
+        author =  response.css('p.author::text').extract()
         subject = response.url.split('/')[4]
         link = response.url
 
         article_text = list(map(lambda x: x.strip(), article_text))
+        article_text = ''.join(article_text)
+        author = list(map(lambda x: x.strip(), author))
 
-        articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text, subject=subject, link=link)
+        bertgerman_model = BertModel.from_pretrained('bert-base-german-cased', output_hidden_states=True)
+        bertgerman_tokenizer = BertTokenizer.from_pretrained('bert-base-german-cased')
+        custom_model = Summarizer(custom_model=bertgerman_model, custom_tokenizer=bertgerman_tokenizer)
+        result = custom_model(article_text, min_length=60)
+        summary = ''.join(result)
+
+        articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
+                                       author=author, summary=summary, subject=subject, link=link)
 
         yield articleItem
