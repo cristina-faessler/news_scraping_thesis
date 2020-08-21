@@ -1,13 +1,17 @@
 import scrapy
+from scrapy.crawler import CrawlerProcess
 from ..items import NewsScrapingItem
-import yake
+import spacy
+from string import punctuation
 from gensim.summarization.summarizer import summarize
+from collections import Counter
 
 class RbbSpider(scrapy.Spider):
 
     name = 'rbb_spider'
     start_urls = ['https://www.rbb24.de/']
     allowed_domains = ['rbb24.de']
+    nlp = spacy.load("de_core_news_lg")
 
     def parse(self, response):
         nav_menu = response.css("#nav-top-container li a::attr('href')").extract()
@@ -24,6 +28,17 @@ class RbbSpider(scrapy.Spider):
                 continue
             yield scrapy.Request(url, callback=self.scrape_news_article)
 
+    def get_hotwords(self, text):
+        result = []
+        pos_tag = ['PROPN', 'NOUN']
+        doc = self.nlp(text.lower())
+        for token in doc:
+            if (token.text in self.nlp.Defaults.stop_words or token.text in punctuation):
+                continue
+            if (token.pos_ in pos_tag):
+                result.append(token.text)
+        return result
+
     def scrape_news_article(self, response):
         if 'html' in response.url:
             headline = response.css('h3 > span.titletext::text').extract()
@@ -31,8 +46,9 @@ class RbbSpider(scrapy.Spider):
             date_publish = date_publish[0]
             article_text = response.css('.textblock p::text').extract()
             article_text = ''.join(article_text)
-            kw_extractor = yake.KeywordExtractor(lan='de', top=10)
-            keywords = kw_extractor.extract_keywords(article_text)
+            hot_words = self.get_hotwords(article_text)
+            top_key_words = [(kw[0] + ', ') for kw in Counter(hot_words).most_common(7)]
+            keywords = ''.join(top_key_words)
             author = ''
             subject = response.url.split('/')[3]
             summary = summarize(article_text)
@@ -45,3 +61,10 @@ class RbbSpider(scrapy.Spider):
 
 
             yield articleItem
+
+if __name__ == "__main__":
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+    })
+    process.crawl(RbbSpider)
+    process.start()

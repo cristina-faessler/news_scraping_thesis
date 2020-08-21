@@ -1,14 +1,18 @@
 import scrapy
+from scrapy.crawler import CrawlerProcess
 from ..items import NewsScrapingItem
 import re
-import yake
+import spacy
+from string import punctuation
 from gensim.summarization.summarizer import summarize
+from collections import Counter
 
-class RbbSpider(scrapy.Spider):
+class NdrSpider(scrapy.Spider):
 
     name = 'ndr_spider'
     start_urls = ['https://www.ndr.de/nachrichten/info/index.html']
     allowed_domains = ['ndr.de']
+    nlp = spacy.load("de_core_news_lg")
 
     def parse(self, response):
         nav_menu = response.css('nav > ul > li > a::attr(href)').extract()
@@ -29,6 +33,17 @@ class RbbSpider(scrapy.Spider):
                 continue
             yield scrapy.Request(url, callback=self.parse_news_article)
 
+    def get_hotwords(self, text):
+        result = []
+        pos_tag = ['PROPN', 'NOUN']
+        doc = self.nlp(text.lower())
+        for token in doc:
+            if (token.text in self.nlp.Defaults.stop_words or token.text in punctuation):
+                continue
+            if (token.pos_ in pos_tag):
+                result.append(token.text)
+        return result
+
     def parse_news_article(self, response):
         headline = response.css('header > h1::text').extract()
         date_publish = response.css('.lastchanged::text').extract()
@@ -39,8 +54,9 @@ class RbbSpider(scrapy.Spider):
         else:
             subject = response.url.split('/')[3]
         author = ''
-        kw_extractor = yake.KeywordExtractor(lan='de', top=10)
-        keywords = kw_extractor.extract_keywords(article_text)
+        hot_words = self.get_hotwords(article_text)
+        top_key_words = [(kw[0] + ', ') for kw in Counter(hot_words).most_common(7)]
+        keywords = ''.join(top_key_words)
         summary = summarize(article_text)
         link = response.url
 
@@ -55,3 +71,10 @@ class RbbSpider(scrapy.Spider):
         articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
                                        author=author, keywords=keywords, summary=summary, subject=subject, link=link)
         yield articleItem
+
+if __name__ == "__main__":
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+    })
+    process.crawl(NdrSpider)
+    process.start()

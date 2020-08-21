@@ -1,12 +1,16 @@
 import scrapy
+from scrapy.crawler import CrawlerProcess
 from ..items import NewsScrapingItem
-from summarizer import Summarizer
-from transformers import BertModel, BertTokenizer
+from gensim.summarization.summarizer import summarize
+import spacy
+from string import punctuation
+from collections import Counter
 
-class RbbSpider(scrapy.Spider):
+class MdrSpider(scrapy.Spider):
 
     name = 'mdr_spider'
     start_urls = ['https://www.mdr.de/nachrichten/index.html']
+    nlp = spacy.load("de_core_news_lg")
 
     def parse(self, response):
         nav = response.css(".level1 > li > a::attr('href')")
@@ -33,27 +37,41 @@ class RbbSpider(scrapy.Spider):
             url = response.urljoin(href.extract())
             yield scrapy.Request(url, callback=self.scrape)
 
+    def get_hotwords(self, text):
+        result = []
+        pos_tag = ['PROPN', 'NOUN']
+        doc = self.nlp(text.lower())
+        for token in doc:
+            if (token.text in self.nlp.Defaults.stop_words or token.text in punctuation):
+                continue
+            if (token.pos_ in pos_tag):
+                result.append(token.text)
+        return result
+
     def scrape(self, response):
         headline = response.css('h1 > span.headline::text').extract()
         date_publish = response.css('p.webtime > span::text').extract()
         if date_publish is not None:
             date_publish = date_publish[1].replace(',','')
         article_text = response.css('.paragraph > .text::text').extract()
+        article_text = ''.join(article_text)
         author =  response.css('p.author::text').extract()
         subject = response.url.split('/')[4]
         link = response.url
-
-        article_text = list(map(lambda x: x.strip(), article_text))
-        article_text = ''.join(article_text)
-        author = list(map(lambda x: x.strip(), author))
-
-        bertgerman_model = BertModel.from_pretrained('bert-base-german-cased', output_hidden_states=True)
-        bertgerman_tokenizer = BertTokenizer.from_pretrained('bert-base-german-cased')
-        custom_model = Summarizer(custom_model=bertgerman_model, custom_tokenizer=bertgerman_tokenizer)
-        result = custom_model(article_text, min_length=60)
-        summary = ''.join(result)
+        hot_words = self.get_hotwords(article_text)
+        top_key_words = [(kw[0] + ', ') for kw in Counter(hot_words).most_common(7)]
+        keywords = ''.join(top_key_words)
+        summary = summarize(article_text)
 
         articleItem = NewsScrapingItem(headline=headline, date_publish=date_publish, article_text=article_text,
-                                       author=author, summary=summary, subject=subject, link=link)
+                                       author=author, keywords=keywords, summary=summary, subject=subject, link=link)
 
         yield articleItem
+
+
+if __name__ == "__main__":
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+    })
+    process.crawl(MdrSpider)
+    process.start()

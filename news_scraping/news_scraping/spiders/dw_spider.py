@@ -1,12 +1,16 @@
 import scrapy
+from scrapy.crawler import CrawlerProcess
 from ..items import NewsScrapingItem
-import yake
+import spacy
+from string import punctuation
 from gensim.summarization.summarizer import summarize
+from collections import Counter
 
 class DwSpider(scrapy.Spider):
 
     name = 'dw_spider'
     start_urls = ['https://www.dw.com/de/themen/s-9077']
+    nlp = spacy.load("de_core_news_lg")
 
     def parse(self, response):
         nav_menu = response.css("#navLevel2 > li > a::attr('href')")
@@ -29,6 +33,17 @@ class DwSpider(scrapy.Spider):
             request.meta['item'] = articleItem
             yield request
 
+    def get_hotwords(self, text):
+        result = []
+        pos_tag = ['PROPN', 'NOUN']
+        doc = self.nlp(text.lower())
+        for token in doc:
+            if (token.text in self.nlp.Defaults.stop_words or token.text in punctuation):
+                continue
+            if (token.pos_ in pos_tag):
+                result.append(token.text)
+        return result
+
     def parse_news_article(self, response):
         articleItem = response.meta['item']
         articleItem['headline'] = response.css('h1::text').extract()
@@ -37,9 +52,17 @@ class DwSpider(scrapy.Spider):
         article_text = ''.join(articleItem['article_text'])
         articleItem['author'] = response.css('.group > .smallList > li:nth-child(2)::text').extract()
         articleItem['author'] = list(map(lambda x: x.strip(), articleItem['author']))
-        kw_extractor = yake.KeywordExtractor(lan='de', top=10)
-        articleItem['keywords'] = kw_extractor.extract_keywords(article_text)
+        hot_words = self.get_hotwords(article_text)
+        top_key_words = [(kw[0] + ', ') for kw in Counter(hot_words).most_common(7)]
+        articleItem['keywords'] = ''.join(top_key_words)
         articleItem['summary'] = summarize(article_text)
         articleItem['link'] = response.url
 
         yield articleItem
+
+if __name__ == "__main__":
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+    })
+    process.crawl(DwSpider)
+    process.start()

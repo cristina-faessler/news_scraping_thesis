@@ -1,11 +1,16 @@
 import scrapy
+from scrapy.crawler import CrawlerProcess
 from ..items import NewsScrapingItem
-import yake
+import spacy
+from string import punctuation
 from gensim.summarization.summarizer import summarize
-class RbbSpider(scrapy.Spider):
+from collections import Counter
+
+class SwrSpider(scrapy.Spider):
 
     name = 'swr_spider'
     start_urls = ['https://www.swr.de/swraktuell/swraktuell-100.html']
+    nlp = spacy.load("de_core_news_lg")
 
     def parse(self, response):
         nav_bar = response.css(".navbar-nav > li > a::attr('href')").extract()
@@ -24,6 +29,17 @@ class RbbSpider(scrapy.Spider):
                 continue
             yield scrapy.Request(url, callback=self.parse_news_article)
 
+    def get_hotwords(self, text):
+        result = []
+        pos_tag = ['PROPN', 'NOUN']
+        doc = self.nlp(text.lower())
+        for token in doc:
+            if (token.text in self.nlp.Defaults.stop_words or token.text in punctuation):
+                continue
+            if (token.pos_ in pos_tag):
+                result.append(token.text)
+        return result
+
     def parse_news_article(self, response):
         if "swraktuell" in response.url:
             headline = response.css("div > header > h1 > span[itemprop='headline']::text").extract()
@@ -35,8 +51,9 @@ class RbbSpider(scrapy.Spider):
             subject = response.url.split('/')[4]
             author = response.css('footer > div > dl.meta-authors > dd::text').extract()
             author = list(map(lambda x: x.strip(), author))
-            kw_extractor = yake.KeywordExtractor(lan='de', top=10)
-            keywords = kw_extractor.extract_keywords(article_text)
+            hot_words = self.get_hotwords(article_text)
+            top_key_words = [(kw[0] + ', ') for kw in Counter(hot_words).most_common(7)]
+            keywords = ''.join(top_key_words)
             summary = summarize(article_text)
             link = response.url
 
@@ -44,3 +61,11 @@ class RbbSpider(scrapy.Spider):
                                            subject=subject, author=author, keywords=keywords, summary=summary, link=link)
 
             yield articleItem
+
+
+if __name__ == "__main__":
+    process = CrawlerProcess({
+        'USER_AGENT': 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)'
+    })
+    process.crawl(SwrSpider)
+    process.start()

@@ -2,14 +2,17 @@ import scrapy
 from ..items import NewsScrapingItem
 from scrapy.crawler import CrawlerProcess
 from gensim.summarization.summarizer import summarize
-import yake
+import spacy
+from string import punctuation
 import re
+from collections import Counter
 
 class TagesschauSpider(scrapy.Spider):
 
     name = 'tagesschau'
     start_urls = ['https://www.tagesschau.de']
     allowed_domains = ['www.tagesschau.de']
+    nlp = spacy.load("de_core_news_lg")
 
     def parse(self, response):
         nav_bar_url = response.css(".ressorts > li > span a::attr('href')")
@@ -27,6 +30,17 @@ class TagesschauSpider(scrapy.Spider):
                 continue
             yield scrapy.Request(url, callback=self.scrape)
 
+    def get_hotwords(self, text):
+        result = []
+        pos_tag = ['PROPN', 'NOUN']
+        doc = self.nlp(text.lower())
+        for token in doc:
+            if (token.text in self.nlp.Defaults.stop_words or token.text in punctuation):
+                continue
+            if (token.pos_ in pos_tag):
+                result.append(token.text)
+        return result
+
     def scrape(self, response):
         headline = response.css('.headline::text').extract()
         date_publish = response.css('span.stand::text').extract()
@@ -34,8 +48,9 @@ class TagesschauSpider(scrapy.Spider):
         while '\n' in article_text: article_text.remove('\n')
         article_text = ''.join(article_text)
         author = response.css('p.autorenzeile.small::text').extract()
-        kw_extractor = yake.KeywordExtractor(lan='de', top=10)
-        keywords = kw_extractor.extract_keywords(article_text)
+        hot_words = self.get_hotwords(article_text)
+        top_key_words = [(kw[0] + ', ') for kw in Counter(hot_words).most_common(7)]
+        keywords = ''.join(top_key_words)
         summary = summarize(article_text)
         subject = response.url.split('/')[3]
         link = response.url
