@@ -1,5 +1,7 @@
 ## A tool for gathering German news articles and generation of a ready-to-use dataset for NLP tasks
 
+![Scrapy architecture illustration](/Users/cristinabolohan/Downloads/Bachelor Thesis/tool_doc_illustration.jpg)
+
 A tool for gathering German news articles and storage into PostgreSQL.
 The continuous extraction of news allows the extension of the database and the 
 availability of a large dataset, which can further be used for certain NLP tasks. 
