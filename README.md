@@ -1,6 +1,6 @@
 ## A tool for gathering German news articles and generation of a ready-to-use dataset for NLP tasks
 
-![Scrapy architecture illustration](/Users/cristinabolohan/Downloads/Bachelor Thesis/source/images "Scrapy Architecture Illustraction"){: .shadow}
+![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustraction")
 
 A tool for gathering German news articles and storage into PostgreSQL.
 The continuous extraction of news allows the extension of the database and the 
