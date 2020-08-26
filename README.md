@@ -1,6 +1,6 @@
 ## A tool for gathering German news articles and generation of a ready-to-use dataset for NLP tasks
 
-![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustraction")
+![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustration")
 
 A tool for gathering German news articles and storage into PostgreSQL.
 The continuous extraction of news allows the extension of the database and the 
@@ -30,7 +30,7 @@ which travels back to the spider that issued the request.
 
 ### Web Crawler
 
-The first requests to perform are specified in the start_urls. The response will
+The first requests to perform are specified in the `start_urls`. The response will
 be received in the parse function. 
 
 **parse():** looks for all the links in the navigation bar of the website
@@ -51,6 +51,39 @@ The data is structured and stored as _items_, Python objects that define key-val
 - summary 
 - subject
 - link 
+
+### Item Pipeline
+
+After an item has been scraped by a spider, it is sent to the Item Pipeline which processes it through several components that are executed sequentially.
+Each item pipeline component is a Python class that must implement the following method:
+
+`process_item(self, item, spider)` 
+This method is called for every item pipeline component.
+
+**process_item()** must either: return an *item* object, return a **Deferred** or raise a **DropItem** exception.
+> **Parameters**
+- **item** - the scraped item
+- **spider** - the spider which scraped the item
+
+**store_to_db(self, item):** stores the scraped item in a `PostgreSQL` database
+
+### NLP Tasks
+
+For keywords extraction we used the German language model provided by spaCy, an open-source software library for advanced Natural Language Processing. 
+
+`get_hotwords(self, text):` this method is taking as input parameters the news article text and is extracting the keywords using the part of speech tagging. 
+It is tagging the `PROPN` (proper noun) and `NOUN` (noun) for now. If you would like to extract another part of speech tag such as a verb, extend the list
+based on your requirements. Afterwards it is converting the input text into lowercase and tokenizing it via the spaCy model that we have loaded using `nlp = spacy.load("de_core_news_lg")`. 
+A processed `Doc` object will be returned. The object contains `Token` objects based on the tokenization process. It loops then over each token and determine if the tokenized text is part 
+of the default stopwords or punctuation. It stores the result if the part of speech tag of the tokenized text is the one that we have specified previously. And finally it returns the result as a list of strings.
+
+We use the `Counter` module to sort and get the most frequent keywords by retaining the frequency of each word. The `Counter` module has a `most_common` function that accepts an integer as 
+an input parameter. 
+
+`summarize(self, article_text, ratio):` is getting a summarized version of the given article text with the help of `gensim.summarizer` module. Summarizing is based on ranks of text sentences using a variation of the TextRank algorithm.
+> **Parameters**
+- article_text (str) – Given text.
+- ratio (float, optional) – Number between 0 and 1 that determines the proportion of the number of sentences of the original text to be chosen for the summary.
 
 ### How to run the spider:
 
