@@ -1,4 +1,4 @@
-## A tool for gathering German news articles and generation of a ready-to-use dataset for NLP tasks
+## A Tool for Gathering German News Articles and Generation of a ready-to-use Data Set for NLP Tasks
 
 ![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustration")
 
@@ -89,6 +89,8 @@ an input parameter.
 
 In order to extract the news articles from Tagesschau, run the following command: 
 **scrapy crawl tagesschau** 
+
+For collecting the news from another news portal, change the `name` of the *spider* in the command: **scrapy crawl name**
 
 
 
