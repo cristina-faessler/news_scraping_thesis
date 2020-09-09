@@ -1,3 +1,4 @@
+# @author: Cristina Bolohan
 import psycopg2
 
 class NewsScrapingPipeline(object):
@@ -9,7 +10,7 @@ class NewsScrapingPipeline(object):
         db = 'postgres'
         self.conn = psycopg2.connect(host=host, user=usr, password=pwd, dbname=db)
         self.cur = self.conn.cursor()
-        self.create_table()
+        #self.create_table()
 
     def close_spider(self, spider):
         self.cur.close()
@@ -22,7 +23,7 @@ class NewsScrapingPipeline(object):
     def create_table(self):
         drop = """DROP TABLE IF EXISTS news"""
         create_tbl = """CREATE TABLE news (
-        article_id serial PRIMARY KEY,
+        id serial PRIMARY KEY,
         headline TEXT,
         date_publish TEXT,
         article_text TEXT,
@@ -30,7 +31,7 @@ class NewsScrapingPipeline(object):
         keywords TEXT,
         summary TEXT,
         subject TEXT,
-        link TEXT
+        link TEXT UNIQUE
         )
         """
         self.cur.execute(drop)
@@ -41,11 +42,13 @@ class NewsScrapingPipeline(object):
         insert_query = """INSERT INTO news
         (headline, date_publish, article_text, authors, keywords, summary, subject, link)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (link) DO NOTHING
         """
+
         self.cur.execute(insert_query, (
             ('').join(item['headline']),
             ('').join(item['date_publish']),
-            ('').join(item['article_text']),
+            ('').join(item['article_text']).strip(),
             ('').join(item['author']),
             item['keywords'],
             item['summary'],

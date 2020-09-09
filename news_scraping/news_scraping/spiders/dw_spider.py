@@ -1,3 +1,4 @@
+# @author: Cristina Bolohan
 import scrapy
 from scrapy.crawler import CrawlerProcess
 from ..items import NewsScrapingItem
@@ -25,10 +26,13 @@ class DwSpider(scrapy.Spider):
             yield request
 
     def get_all_links(self, response):
+        exclude = ['tv', 'g-', 'av-']
         articleItem = response.meta['item']
         anchor_selector = ".news a::attr('href')"
         for href in response.css(anchor_selector):
             url = response.urljoin(href.extract())
+            if any(key_word in url for key_word in exclude):
+                continue
             request = scrapy.Request(url, callback=self.parse_news_article)
             request.meta['item'] = articleItem
             yield request

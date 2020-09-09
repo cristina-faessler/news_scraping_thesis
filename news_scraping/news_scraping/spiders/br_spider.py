@@ -1,3 +1,4 @@
+# @author: Cristina Bolohan
 import scrapy
 from ..items import NewsScrapingItem
 from scrapy.crawler import CrawlerProcess

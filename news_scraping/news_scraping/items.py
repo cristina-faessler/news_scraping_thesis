@@ -7,7 +7,6 @@
 
 import scrapy
 
-
 class NewsScrapingItem(scrapy.Item):
     headline = scrapy.Field()
     date_publish = scrapy.Field()
