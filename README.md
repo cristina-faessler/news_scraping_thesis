@@ -85,12 +85,35 @@ an input parameter.
 - article_text (str) – Given text.
 - ratio (float, optional) – Number between 0 and 1 that determines the proportion of the number of sentences of the original text to be chosen for the summary.
 
-### How to run the spider:
+### Scheduling Jobs With Crontab on macOS
+
+Running scripts on your computer is great. Running them automatically is even better! Automatic running on MacOS (and Linux) can be done by setting cron jobs. 
+
+Setting cron jobs requires a specific format.
+
+```
+* * * * * command
+* - minute (0-59)
+* - hour (0-23)
+* - day of the month (1-31)
+* - month (1-12)
+* - day of the week (0-6, 0 is Sunday)
+command - command to execute
+(from left-to-right)
+```
+
+For all existing spiders, cron jobs for automatic web scraping have been set. 
+
+![Cron Jobs](/news_scraping/news_scraping/source/images/crontab_jobs.png "Cron Jobs")
+
+For example, the new published news articles from BR will be collected daily at 9:15, 12:15 and 17:15 o'clock. 
+
+### How to Run the Spider:
 
 In order to extract the news articles from Tagesschau, run the following command: 
 **scrapy crawl tagesschau** 
 
-For collecting the news from another news portal, change the `name` of the *spider* in the command: **scrapy crawl name**
+For collecting the news from another news portal, change the `name` of the *spider* in the following command: **scrapy crawl name**
 
 
 
