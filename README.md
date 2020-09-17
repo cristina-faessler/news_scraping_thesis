@@ -2,6 +2,13 @@
 
 ![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustration")
 
+### Requirements
+- Scrapy
+- SpaCy 
+- gensim
+- de_core_news_lg
+- psycopg2
+
 A tool for gathering German news articles and storage into PostgreSQL.
 The continuous extraction of news allows the extension of the database and the 
 availability of a large dataset, which can further be used for certain NLP tasks. 
