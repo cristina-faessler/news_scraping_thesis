@@ -3,10 +3,10 @@
 ![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustration")
 
 ### Requirements
-- Scrapy
-- SpaCy 
+- Scrapy 2.3.0
+- SpaCy 2.3.0
 - gensim
-- de_core_news_lg
+- `python -m spacy download de_core_news_lg`
 - psycopg2
 
 A tool for gathering German news articles and storage into PostgreSQL.
