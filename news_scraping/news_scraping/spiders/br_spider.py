@@ -13,6 +13,7 @@ class BRSpider(scrapy.Spider):
     name = 'br_spider'
     start_urls = ['https://www.br.de/nachrichten/']
     nlp = spacy.load("de_core_news_lg")
+    # nlp = StanfordCoreNLP('http://localhost:9000')
 
     def parse(self, response):
         nav_bar_url = response.css("#__next > header > div.css-1rumvwz > nav > div > div.css-10gc1wg > div > ul > li > a::attr('href')")
