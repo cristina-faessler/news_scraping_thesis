@@ -58,5 +58,3 @@ class NewsScrapingPipeline(object):
         self.conn.commit()
 
 
-
-

@@ -66,7 +66,14 @@ ROBOTSTXT_OBEY = True
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    'news_scraping.pipelines.NewsScrapingPipeline': 300,
+   'scrapyelasticsearch.scrapyelasticsearch.ElasticSearchPipeline': 500,
 }
+
+ELASTICSEARCH_SERVER = 'localhost'
+ELASTICSEARCH_PORT = 9200
+ELASTICSEARCH_INDEX = 'newsarticles'
+ELASTICSEARCH_TYPE = 'articles'
+ELASTICSEARCH_UNIQ_KEY = 'link'
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
