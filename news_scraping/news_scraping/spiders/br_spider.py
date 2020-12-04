@@ -7,13 +7,13 @@ from gensim.summarization.summarizer import summarize
 import spacy
 from string import punctuation
 from collections import Counter
+from textblob_de import TextBlobDE as TextBlob
 
 class BRSpider(scrapy.Spider):
 
     name = 'br_spider'
     start_urls = ['https://www.br.de/nachrichten/']
     nlp = spacy.load("de_core_news_lg")
-    # nlp = StanfordCoreNLP('http://localhost:9000')
 
     def parse(self, response):
         nav_bar_url = response.css("#__next > header > div.css-1rumvwz > nav > div > div.css-10gc1wg > div > ul > li > a::attr('href')")
@@ -126,6 +126,8 @@ class BRSpider(scrapy.Spider):
         article_text = ''.join(articleItem['article_text'])
         articleItem['author'] = response.css(".css-134vnn1 section:nth-child(3) li a span::text").extract()
         articleItem['author'] = ','.join(articleItem['author'])
+        txt_blob = TextBlob(article_text)
+        articleItem['sentiment'] = txt_blob.sentiment
         key_words = self.get_hotwords(article_text)
         top_key_words = [(kw[0] + ', ') for kw in Counter(key_words).most_common(7)]
         articleItem['keywords'] = ''.join(top_key_words)

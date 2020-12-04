@@ -11,6 +11,8 @@ class NewsScrapingItem(scrapy.Item):
     headline = scrapy.Field()
     date_publish = scrapy.Field()
     article_text = scrapy.Field()
+    sentiment = scrapy.Field()
+    topic = scrapy.Field()
     author = scrapy.Field()
     keywords = scrapy.Field()
     summary = scrapy.Field()
