@@ -2,6 +2,8 @@
 
 ![Scrapy architecture illustration](/news_scraping/news_scraping/source/images/tool_doc_illustration.jpg "Scrapy Architecture Illustration")
 
+### [Thesis manuscript](https://www.overleaf.com/read/mwhtzfzghtgc)
+
 ### Requirements
 - Scrapy 2.3.0
 - SpaCy 2.3.0
